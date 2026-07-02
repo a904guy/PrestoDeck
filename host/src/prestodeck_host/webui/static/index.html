@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PrestoDeck Editor</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif;
+         background: #0a0a0e; color: #e8e8ee; }
+  header { padding: 12px 20px; border-bottom: 1px solid #23232c;
+           display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 18px; margin: 0; color: #3cc8c8; }
+  header .status { margin-left: auto; font-size: 13px; color: #9a9aa6; }
+  .ok { color: #1db954; } .err { color: #e8556a; }
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px;
+         height: calc(100vh - 110px); }
+  .pane { display: flex; flex-direction: column; min-height: 0; }
+  .pane .head { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; }
+  .pane h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em;
+             color: #9a9aa6; margin: 0; }
+  .live-toggle { margin-left: auto; font-size: 12px; color: #cdd2dc;
+                 display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #4b4b57; }
+  .live-dot.on { background: #1db954; box-shadow: 0 0 6px #1db954; }
+  textarea { flex: 1; resize: none; background: #12121a; color: #d8d8e2;
+             border: 1px solid #2a2a36; border-radius: 8px; padding: 12px;
+             font-family: ui-monospace, monospace; font-size: 13px; line-height: 1.5; }
+  .preview { flex: 1; overflow: auto; }
+  .page { margin-bottom: 18px; }
+  .page .name { font-size: 12px; color: #9a9aa6; margin-bottom: 6px; }
+  .grid { display: grid; gap: 10px; }
+  .btn { position: relative; aspect-ratio: 1; border: 3px solid #3c3c50; border-radius: 14px;
+         background: #262c3c; display: flex; flex-direction: column;
+         align-items: center; justify-content: center; gap: 4px;
+         text-align: center; padding: 6px; font-size: 13px; color: #ebeff5;
+         transition: background .08s, border-color .12s; }
+  .btn.click { cursor: pointer; }
+  .btn.press { background: #4666c8; }
+  .btn img.ic { width: 44px; height: 44px; object-fit: contain; pointer-events: none; }
+  .btn .lbl { line-height: 1.1; }
+  .btn .nav { font-size: 10px; color: #ffb900; margin-top: 2px; }
+  footer { padding: 10px 20px; border-top: 1px solid #23232c;
+           display: flex; align-items: center; gap: 12px; }
+  button.action { background: #1db954; color: #06210f; border: none; cursor: pointer;
+                  font-weight: 600; padding: 9px 16px; border-radius: 8px; }
+  button.action:hover { filter: brightness(1.08); }
+  button.ghost { background: #23232e; color: #cdd2dc; }
+  .icons { display: flex; gap: 8px; flex-wrap: wrap; font-size: 12px; color: #9a9aa6; }
+  input[type=file] { font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PrestoDeck</h1>
+  <span>deck editor</span>
+  <span class="status" id="status">loading...</span>
+</header>
+<main>
+  <section class="pane">
+    <div class="head"><h2>deck.yaml</h2></div>
+    <textarea id="yaml" spellcheck="false"></textarea>
+  </section>
+  <section class="pane">
+    <div class="head">
+      <h2>preview</h2>
+      <label class="live-toggle" title="Connect as a virtual deck: buttons show live state and clicks run the real action">
+        <span class="live-dot" id="livedot"></span>
+        <input type="checkbox" id="live"> Live control
+      </label>
+    </div>
+    <div class="preview" id="preview"></div>
+  </section>
+</main>
+<footer>
+  <button class="action" id="save">Save &amp; push</button>
+  <button class="action ghost" id="import">Import...</button>
+  <button class="action ghost" id="export">Export</button>
+  <input type="file" id="deckfile" accept=".yaml,.yml" hidden>
+  <label>icon: <input type="file" id="iconfile" accept=".png"></label>
+  <div class="icons" id="icons"></div>
+</footer>
+<script>
+const $ = (id) => document.getElementById(id);
+const status = (msg, cls) => { const s = $("status"); s.textContent = msg; s.className = "status " + (cls||""); };
+
+const DEVICE_ID = "web-" + Math.random().toString(36).slice(2, 8);
+let wsPort = 7878;
+let ws = null;           // live WebSocket, or null
+let liveCells = {};      // "page/button" -> tile element, for live state updates
+
+async function loadDeck() {
+  try { wsPort = (await (await fetch("/api/info")).json()).ws_port || wsPort; } catch (e) {}
+  const r = await fetch("/api/deck");
+  $("yaml").value = await r.text();
+  await refreshIcons();
+  await preview();
+}
+
+// ---- static draft preview (default) -------------------------------------
+async function preview() {
+  if (ws) return;  // live mode owns the preview
+  try {
+    const r = await fetch("/api/deck/preview", {
+      method: "POST", headers: {"content-type": "application/json"},
+      body: JSON.stringify({yaml: $("yaml").value}),
+    });
+    if (!r.ok) { const e = await r.json(); status("invalid: " + (e.detail||"").split("\\n")[0], "err"); return; }
+    status("valid", "ok");
+    renderPreview(await r.json(), false);
+  } catch (e) { status("preview error", "err"); }
+}
+
+function tile(b, clickable, page) {
+  const cell = document.createElement("div");
+  cell.className = "btn" + (clickable ? " click" : "");
+  cell.style.gridRowStart = b.row + 1; cell.style.gridColumnStart = b.col + 1;
+  paintTile(cell, b);
+  if (clickable) {
+    liveCells[page + "/" + b.id] = cell;
+    cell.addEventListener("mousedown", () => press(page, b.id, cell));
+  }
+  return cell;
+}
+
+function paintTile(cell, b) {
+  if (b.color) cell.style.borderColor = `rgb(${b.color[0]},${b.color[1]},${b.color[2]})`;
+  cell.innerHTML =
+    (b.icon ? `<img class="ic" src="/api/icons/${encodeURIComponent(b.icon)}" alt="">` : "") +
+    `<div class="lbl">${(b.label ?? b.id) || ""}</div>` +
+    (b.navigate ? `<div class="nav">-> ${b.navigate}</div>` : "");
+}
+
+function renderPreview(cfg, clickable) {
+  const el = $("preview");
+  liveCells = {};
+  el.innerHTML = "";
+  if (!cfg) return;
+  for (const page of cfg.pages) {
+    const pd = document.createElement("div"); pd.className = "page";
+    const nm = document.createElement("div"); nm.className = "name";
+    nm.textContent = page.id + (page.id === cfg.default_page ? "  (default)" : "");
+    pd.appendChild(nm);
+    const grid = document.createElement("div"); grid.className = "grid";
+    const rows = page.grid[0], cols = page.grid[1];
+    grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    grid.style.maxWidth = (cols * 120) + "px";
+    for (const b of page.buttons) grid.appendChild(tile(b, clickable, page.id));
+    pd.appendChild(grid); el.appendChild(pd);
+  }
+}
+
+// ---- live virtual deck over the device WebSocket ------------------------
+function setLive(on) {
+  $("livedot").classList.toggle("on", on);
+}
+
+function connectLive() {
+  const url = `ws://${location.hostname}:${wsPort}/deck`;
+  status("connecting to host...", "");
+  let sock;
+  try { sock = new WebSocket(url); } catch (e) { status("live connect failed", "err"); $("live").checked = false; return; }
+  ws = sock;
+  sock.onopen = () => {
+    sock.send(JSON.stringify({type: "hello", payload: {device_id: DEVICE_ID, firmware: "web-preview"}}));
+    status("live: connected", "ok"); setLive(true);
+  };
+  sock.onmessage = (ev) => {
+    let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+    const p = m.payload || {};
+    if (m.type === "config") renderPreview(p, true);
+    else if (m.type === "set_button_state") applyState(p);
+    else if (m.type === "ping") sock.send(JSON.stringify({type: "pong", payload: {}}));
+  };
+  sock.onclose = () => { if (ws === sock) { ws = null; setLive(false); if ($("live").checked) { $("live").checked = false; preview(); } } };
+  sock.onerror = () => { status("live: connection error", "err"); };
+}
+
+function disconnectLive() {
+  if (ws) { const s = ws; ws = null; try { s.close(); } catch (e) {} }
+  setLive(false);
+  preview();
+}
+
+function applyState(p) {
+  const cell = liveCells[p.page + "/" + p.button];
+  if (!cell || !p.state) return;
+  const s = p.state;
+  const lbl = cell.querySelector(".lbl");
+  if (s.label != null && lbl) lbl.textContent = s.label;
+  if (s.color) cell.style.borderColor = `rgb(${s.color[0]},${s.color[1]},${s.color[2]})`;
+  if (s.icon != null) {
+    let img = cell.querySelector("img.ic");
+    if (!img) { img = document.createElement("img"); img.className = "ic"; cell.prepend(img); }
+    img.src = "/api/icons/" + encodeURIComponent(s.icon);
+  }
+}
+
+function press(page, button, cell) {
+  if (!ws) return;
+  cell.classList.add("press");
+  setTimeout(() => cell.classList.remove("press"), 160);
+  const ts = Date.now();
+  ws.send(JSON.stringify({type: "button_press", payload: {page, button, ts_ms: ts}}));
+  setTimeout(() => { if (ws) ws.send(JSON.stringify({type: "button_release", payload: {page, button, ts_ms: Date.now(), held_ms: 0}})); }, 120);
+}
+
+// ---- save / icons -------------------------------------------------------
+async function save() {
+  const r = await fetch("/api/deck", {
+    method: "PUT", headers: {"content-type": "application/json"},
+    body: JSON.stringify({yaml: $("yaml").value}),
+  });
+  if (r.ok) { const d = await r.json(); status("saved & pushed (" + d.pages + " pages)", "ok"); }
+  else { const e = await r.json(); status("NOT saved: " + (e.detail||"").split("\\n")[0], "err"); }
+}
+
+async function refreshIcons() {
+  const r = await fetch("/api/icons");
+  $("icons").textContent = "icons: " + (await r.json()).join(", ");
+}
+
+// ---- import / export ----------------------------------------------------
+function exportDeck() {
+  const blob = new Blob([$("yaml").value], {type: "application/x-yaml"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "deck.yaml";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
+  status("exported deck.yaml", "ok");
+}
+
+async function importDeck(ev) {
+  const f = ev.target.files[0];
+  ev.target.value = "";  // allow re-picking the same file later
+  if (!f) return;
+  const text = await f.text();
+  if ($("live").checked) { $("live").checked = false; disconnectLive(); }
+  $("yaml").value = text;
+  status("loaded " + f.name + " - review, then Save & push", "");
+  await preview();  // validate the imported config, but do not save it
+}
+
+$("yaml").addEventListener("input", () => { clearTimeout(window._t); window._t = setTimeout(preview, 400); });
+$("save").addEventListener("click", save);
+$("export").addEventListener("click", exportDeck);
+$("import").addEventListener("click", () => $("deckfile").click());
+$("deckfile").addEventListener("change", importDeck);
+$("live").addEventListener("change", (e) => { e.target.checked ? connectLive() : disconnectLive(); });
+$("iconfile").addEventListener("change", async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  const fd = new FormData(); fd.append("file", f);
+  const r = await fetch("/api/icons", {method: "POST", body: fd});
+  status(r.ok ? "icon uploaded: " + f.name : "icon upload failed", r.ok ? "ok" : "err");
+  await refreshIcons();
+});
+loadDeck();
+</script>
+</body>
+</html>

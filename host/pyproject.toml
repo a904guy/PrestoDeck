@@ -1,0 +1,100 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "prestodeck-host"
+version = "0.1.0"
+description = "PrestoDeck host daemon: WebSocket server, mDNS advertiser, action engine, and web UI."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Andy Hawkins", email = "andy@hawkins.app" }]
+keywords = ["streamdeck", "presto", "pimoroni", "macropad", "websocket", "automation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Home Automation",
+]
+dependencies = [
+    "pydantic>=2",
+    "websockets",
+    "httpx",
+    "pynput",
+    "zeroconf",
+    "watchfiles",
+    "pyyaml",
+    "pillow",
+    "fastapi",
+    "uvicorn",
+    "python-multipart",
+    "mpremote",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "ruff",
+    "mypy",
+    "types-PyYAML",
+    "pytest-cov",
+]
+
+[project.urls]
+Homepage = "https://github.com/a904guy/prestodeck"
+Repository = "https://github.com/a904guy/prestodeck"
+
+[project.scripts]
+prestodeck-host = "prestodeck_host.__main__:main"
+prestodeck-deploy = "prestodeck_host.deploy:main"
+prestodeck-setup = "prestodeck_host.setup_device:main"
+
+# Built-in actions are wired in Sprint 1+. Third-party plugins register their
+# action classes under this entry-point group; see docs/action-authoring.md.
+[project.entry-points."prestodeck.actions"]
+# obs_scene = "my_plugin.obs:OBSSceneAction"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/prestodeck_host"]
+# Ship the bundled starter deck, its icons, and the web editor page in the wheel.
+artifacts = [
+    "src/prestodeck_host/data/*.yaml",
+    "src/prestodeck_host/data/icons/*.png",
+    "src/prestodeck_host/webui/static/*.html",
+]
+
+[tool.ruff]
+target-version = "py311"
+src = ["src"]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W", "C4", "SIM"]
+
+[tool.mypy]
+strict = true
+mypy_path = "src"
+packages = ["prestodeck_host"]
+python_version = "3.11"
+
+[[tool.mypy.overrides]]
+module = [
+    "pynput.*",
+    "zeroconf.*",
+    "watchfiles.*",
+    "yaml.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "hardware: tests that require a physical Presto attached (skipped in CI).",
+]

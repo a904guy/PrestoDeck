@@ -1,0 +1,103 @@
+# PrestoDeck example deck (two pages, swipe to switch).
+#
+# Copy to host/config/deck.yaml (gitignored) and edit, or use the web editor at
+# http://localhost:8080/ui. Changes are validated and pushed to the device live.
+#
+# Navigation is by SWIPE (left/right) with page-indicator dots at the bottom, so
+# every grid cell is a real button. See docs/action-authoring.md for actions.
+
+version: 1
+
+host:
+  bind: "0.0.0.0"
+  port: 7878
+  service_name: "PrestoDeck"
+  log_level: "INFO"
+  web_port: 8080
+
+default_page: "main"
+
+theme:
+  background: [10, 10, 14]
+  default_label_color: [240, 240, 240]
+  default_outline_color: [60, 200, 200]
+  corner_radius: 12
+
+pages:
+  - id: "main"
+    grid: [2, 2]
+    buttons:
+      - id: "mic"
+        row: 0
+        col: 0
+        label: "Mic"
+        color: [200, 0, 0]
+        action:
+          type: "toggle"
+          id: "mic"
+          on: {type: "notify", text: "Mic ON"}
+          off: {type: "notify", text: "Mic OFF"}
+          on_label: "Mic On"
+          on_color: [0, 200, 0]
+          off_label: "Mic Off"
+          off_color: [200, 0, 0]
+
+      - id: "toast"
+        row: 0
+        col: 1
+        label: "Toast"
+        color: [0, 120, 215]
+        action: {type: "notify", text: "Hello from PrestoDeck!", duration_ms: 2500, color: [0, 120, 215]}
+
+      - id: "play"
+        row: 1
+        col: 0
+        label: "Play"
+        icon: "play.png"
+        color: [22, 160, 72]
+        action: {type: "media", key: "play_pause"}
+
+      - id: "next"
+        row: 1
+        col: 1
+        label: "Next"
+        icon: "next.png"
+        color: [0, 120, 215]
+        action: {type: "media", key: "next"}
+
+  - id: "tools"
+    grid: [2, 2]
+    buttons:
+      - id: "term"
+        row: 0
+        col: 0
+        label: "Term"
+        color: [231, 72, 86]
+        action: {type: "keystroke", combo: "ctrl+alt+t"}
+
+      - id: "shell"
+        row: 0
+        col: 1
+        label: "Shell"
+        icon: "stop.png"
+        color: [180, 90, 60]
+        action: {type: "shell", cmd: "echo hello > /tmp/prestotest"}
+
+      - id: "vol"
+        row: 1
+        col: 0
+        label: "Vol +"
+        color: [255, 185, 0]
+        repeat_ms: 120          # hold to keep raising the volume
+        action: {type: "media", key: "vol_up"}
+
+      - id: "http"
+        row: 1
+        col: 1
+        label: "HTTP"
+        color: [0, 120, 215]
+        action:
+          type: "http"
+          method: "POST"
+          url: "http://127.0.0.1:8899/echo"
+          json: {msg: "from-presto"}

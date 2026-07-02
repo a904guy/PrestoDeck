@@ -1,0 +1,84 @@
+# PrestoDeck example: one deck, many page sizes (the "mixed bag").
+#
+# Every page picks whatever grid fits its job, and you swipe between them
+# (page-indicator dots show at the bottom). This deck goes 1x1 -> 2x2 -> 3x3 ->
+# 4x4 so you can feel the range on one device. Actions here are mostly toasts so
+# it is safe to run anywhere with no setup.
+#
+#   prestodeck-host --config examples/mixed-sizes.yaml
+
+version: 1
+
+default_page: "focus"
+
+theme:
+  background: [10, 10, 14]
+  default_outline_color: [60, 200, 200]
+  corner_radius: 14
+
+pages:
+  # 1x1 - a single do-not-disturb toggle
+  - id: "focus"
+    grid: [1, 1]
+    buttons:
+      - id: "dnd"
+        row: 0
+        col: 0
+        label: "Focus"
+        icon: "check.png"
+        color: [0, 150, 0]
+        action:
+          type: "toggle"
+          id: "dnd"
+          on: {type: "notify", text: "Do Not Disturb ON", color: [200, 0, 0]}
+          off: {type: "notify", text: "Do Not Disturb OFF"}
+          on_label: "Busy"
+          on_color: [200, 0, 0]
+          on_icon: "mic_muted.png"
+          off_label: "Focus"
+          off_color: [0, 150, 0]
+          off_icon: "check.png"
+
+  # 2x2 - quick media
+  - id: "media"
+    grid: [2, 2]
+    buttons:
+      - {id: "play",     row: 0, col: 0, label: "Play",  icon: "play.png",        color: [22, 160, 72], action: {type: "media", key: "play_pause"}}
+      - {id: "next",     row: 0, col: 1, label: "Next",  icon: "next.png",        color: [0, 120, 215], action: {type: "media", key: "next"}}
+      - {id: "vol_down", row: 1, col: 0, label: "Vol -", icon: "volume_down.png", color: [255, 185, 0], repeat_ms: 120, action: {type: "media", key: "vol_down"}}
+      - {id: "vol_up",   row: 1, col: 1, label: "Vol +", icon: "volume_up.png",   color: [255, 185, 0], repeat_ms: 120, action: {type: "media", key: "vol_up"}}
+
+  # 3x3 - scene board (toasts stand in for real OBS actions)
+  - id: "board"
+    grid: [3, 3]
+    buttons:
+      - {id: "s1",   row: 0, col: 0, label: "Intro",  icon: "coffee.png",    color: [120, 120, 130], action: {type: "notify", text: "Scene: Intro"}}
+      - {id: "s2",   row: 0, col: 1, label: "Live",   icon: "broadcast.png", color: [120, 120, 130], action: {type: "notify", text: "Scene: Live"}}
+      - {id: "s3",   row: 0, col: 2, label: "Screen", icon: "monitor.png",   color: [120, 120, 130], action: {type: "notify", text: "Scene: Screen"}}
+      - {id: "rec",  row: 1, col: 0, label: "Record", icon: "record.png",    color: [200, 0, 0],     action: {type: "notify", text: "Record"}}
+      - {id: "mic",  row: 1, col: 1, label: "Mic",    icon: "mic.png",       color: [0, 150, 0],     action: {type: "notify", text: "Mic"}}
+      - {id: "spk",  row: 1, col: 2, label: "Audio",  icon: "speaker.png",   color: [0, 150, 0],     action: {type: "notify", text: "Audio"}}
+      - {id: "brb",  row: 2, col: 0, label: "BRB",    icon: "coffee.png",    color: [255, 185, 0],   action: {type: "notify", text: "BRB"}}
+      - {id: "clip", row: 2, col: 1, label: "Clip",   icon: "swap.png",      color: [0, 120, 215],   action: {type: "notify", text: "Clip saved"}}
+      - {id: "bell", row: 2, col: 2, label: "Alert",  icon: "bell.png",      color: [120, 80, 200],  action: {type: "notify", text: "Alert!"}}
+
+  # 4x4 - a compact launchpad
+  - id: "pad"
+    grid: [4, 4]
+    buttons:
+      - {id: "p00", row: 0, col: 0, label: "Term",  icon: "terminal.png",    color: [90, 100, 130], action: {type: "keystroke", combo: "ctrl+alt+t"}}
+      - {id: "p01", row: 0, col: 1, label: "Web",   icon: "globe.png",       color: [0, 120, 215],  action: {type: "notify", text: "Web"}}
+      - {id: "p02", row: 0, col: 2, label: "Mon",   icon: "monitor.png",     color: [90, 100, 130], action: {type: "notify", text: "Monitor"}}
+      - {id: "p03", row: 0, col: 3, label: "Bell",  icon: "bell.png",        color: [255, 185, 0],  action: {type: "notify", text: "Ping"}}
+      - {id: "p10", row: 1, col: 0, label: "Prev",  icon: "previous.png",    color: [0, 120, 215],  action: {type: "media", key: "prev"}}
+      - {id: "p11", row: 1, col: 1, label: "Play",  icon: "play.png",        color: [22, 160, 72],  action: {type: "media", key: "play_pause"}}
+      - {id: "p12", row: 1, col: 2, label: "Next",  icon: "next.png",        color: [0, 120, 215],  action: {type: "media", key: "next"}}
+      - {id: "p13", row: 1, col: 3, label: "Mute",  icon: "volume_mute.png", color: [200, 60, 60],  action: {type: "media", key: "mute"}}
+      - {id: "p20", row: 2, col: 0, label: "Vol -", icon: "volume_down.png", color: [255, 185, 0], repeat_ms: 120, action: {type: "media", key: "vol_down"}}
+      - {id: "p21", row: 2, col: 1, label: "Vol +", icon: "volume_up.png",   color: [255, 185, 0], repeat_ms: 120, action: {type: "media", key: "vol_up"}}
+      - {id: "p22", row: 2, col: 2, label: "Pause", icon: "pause.png",       color: [90, 100, 130], action: {type: "media", key: "play_pause"}}
+      - {id: "p23", row: 2, col: 3, label: "Stop",  icon: "stop.png",        color: [200, 60, 60],  action: {type: "notify", text: "Stop"}}
+      - {id: "p30", row: 3, col: 0, label: "Copy",  icon: "swap.png",        color: [90, 100, 130], action: {type: "keystroke", combo: "ctrl+c"}}
+      - {id: "p31", row: 3, col: 1, label: "Paste", icon: "swap.png",        color: [90, 100, 130], action: {type: "keystroke", combo: "ctrl+v"}}
+      - {id: "p32", row: 3, col: 2, label: "Chk",   icon: "check.png",       color: [0, 150, 0],    action: {type: "notify", text: "Done"}}
+      - {id: "p33", row: 3, col: 3, label: "Coffee",icon: "coffee.png",      color: [255, 185, 0],  action: {type: "notify", text: "Break"}}

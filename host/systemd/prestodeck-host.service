@@ -1,0 +1,27 @@
+# PrestoDeck host user-level systemd unit.
+#
+# Install:
+#   mkdir -p ~/.config/systemd/user
+#   cp host/systemd/prestodeck-host.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now prestodeck-host.service
+#
+# The console script is provided by the installed prestodeck-host package; adjust
+# ExecStart if you install into a virtualenv (e.g. %h/.venv/bin/prestodeck-host).
+
+[Unit]
+Description=PrestoDeck host daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Adjust WorkingDirectory to wherever your config/ (deck.yaml + icons/) lives,
+# or set Environment=PRESTODECK_CONFIG=%h/path/to/deck.yaml instead.
+WorkingDirectory=%h/prestodeck/host
+ExecStart=%h/.local/bin/prestodeck-host
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

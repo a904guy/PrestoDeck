@@ -1,0 +1,23 @@
+# Pre-commit hooks for PrestoDeck.
+# Lint and type-check the host source tree on every commit.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        name: ruff (host)
+        args: ["--fix"]
+        files: ^host/src/
+      - id: ruff-format
+        name: ruff-format (host)
+        files: ^host/src/
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        name: mypy --strict (host)
+        files: ^host/src/
+        args: ["--strict", "--ignore-missing-imports"]
+        additional_dependencies:
+          - pydantic>=2

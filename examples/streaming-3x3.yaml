@@ -1,0 +1,176 @@
+# PrestoDeck example: a 3x3 streaming control surface (9 buttons).
+#
+# A full OBS Studio deck - scene switching, record/stream toggles, a replay
+# save, and mic/desktop mute. Buttons mirror live OBS state (feedback), so they
+# stay correct even when you change things inside OBS directly.
+#
+# Requires OBS with obs-websocket enabled (Tools -> WebSocket Server Settings)
+# and scenes/inputs named to match below (edit sceneName/inputName for yours).
+#
+#   prestodeck-host --config examples/streaming-3x3.yaml
+
+version: 1
+
+host:
+  obs:
+    enabled: true
+    url: "ws://localhost:4455"
+    # password: "your-obs-password"   # uncomment if OBS auth is on
+
+default_page: "stream"
+
+theme:
+  background: [10, 10, 14]
+  default_outline_color: [90, 90, 100]
+  corner_radius: 12
+
+pages:
+  - id: "stream"
+    grid: [3, 3]
+    buttons:
+      # Row 0 - scene switching (each lights green with a check when it is live)
+      - id: "scene_starting"
+        row: 0
+        col: 0
+        label: "Starting"
+        icon: "coffee.png"
+        color: [120, 120, 130]
+        action:
+          type: "obs"
+          request: "SetCurrentProgramScene"
+          sceneName: "Starting Soon"
+          feedback: "scene:Starting Soon"
+          on_label: "LIVE"
+          on_color: [0, 180, 0]
+          on_icon: "check.png"
+          off_label: "Starting"
+          off_icon: "coffee.png"
+
+      - id: "scene_live"
+        row: 0
+        col: 1
+        label: "Live"
+        icon: "broadcast.png"
+        color: [120, 120, 130]
+        action:
+          type: "obs"
+          request: "SetCurrentProgramScene"
+          sceneName: "Live"
+          feedback: "scene:Live"
+          on_label: "LIVE"
+          on_color: [0, 180, 0]
+          on_icon: "check.png"
+          off_label: "Live"
+          off_icon: "broadcast.png"
+
+      - id: "scene_screen"
+        row: 0
+        col: 2
+        label: "Screen"
+        icon: "monitor.png"
+        color: [120, 120, 130]
+        action:
+          type: "obs"
+          request: "SetCurrentProgramScene"
+          sceneName: "Screen Share"
+          feedback: "scene:Screen Share"
+          on_label: "LIVE"
+          on_color: [0, 180, 0]
+          on_icon: "check.png"
+          off_label: "Screen"
+          off_icon: "monitor.png"
+
+      # Row 1 - outputs
+      - id: "record"
+        row: 1
+        col: 0
+        label: "Record"
+        icon: "record.png"
+        color: [60, 60, 64]
+        action:
+          type: "obs"
+          request: "ToggleRecord"
+          feedback: "record"
+          on_label: "REC ON"
+          on_color: [200, 0, 0]
+          on_icon: "stop.png"
+          off_label: "Record"
+          off_icon: "record.png"
+
+      - id: "stream_toggle"
+        row: 1
+        col: 1
+        label: "Stream"
+        icon: "broadcast.png"
+        color: [60, 60, 64]
+        action:
+          type: "obs"
+          request: "ToggleStream"
+          feedback: "stream"
+          on_label: "ON AIR"
+          on_color: [200, 0, 0]
+          on_icon: "broadcast.png"
+          off_label: "Stream"
+          off_icon: "broadcast.png"
+
+      - id: "replay"
+        row: 1
+        col: 2
+        label: "Replay"
+        icon: "swap.png"
+        color: [0, 120, 215]
+        action:
+          type: "obs"
+          request: "SaveReplayBuffer"
+
+      # Row 2 - audio + break
+      - id: "mute_mic"
+        row: 2
+        col: 0
+        label: "Mic"
+        icon: "mic.png"
+        color: [0, 150, 0]
+        action:
+          type: "obs"
+          request: "ToggleInputMute"
+          inputName: "Mic/Aux"
+          feedback: "mute:Mic/Aux"
+          on_label: "Mic Muted"
+          on_color: [200, 0, 0]
+          on_icon: "mic_muted.png"
+          off_label: "Mic"
+          off_icon: "mic.png"
+
+      - id: "mute_desktop"
+        row: 2
+        col: 1
+        label: "Desktop"
+        icon: "speaker.png"
+        color: [0, 150, 0]
+        action:
+          type: "obs"
+          request: "ToggleInputMute"
+          inputName: "Desktop Audio"
+          feedback: "mute:Desktop Audio"
+          on_label: "Desk Muted"
+          on_color: [200, 0, 0]
+          on_icon: "volume_mute.png"
+          off_label: "Desktop"
+          off_icon: "speaker.png"
+
+      - id: "brb"
+        row: 2
+        col: 2
+        label: "BRB"
+        icon: "coffee.png"
+        color: [255, 185, 0]
+        action:
+          type: "obs"
+          request: "SetCurrentProgramScene"
+          sceneName: "BRB"
+          feedback: "scene:BRB"
+          on_label: "BRB"
+          on_color: [255, 185, 0]
+          on_icon: "coffee.png"
+          off_label: "BRB"
+          off_icon: "coffee.png"

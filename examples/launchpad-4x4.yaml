@@ -1,0 +1,45 @@
+# PrestoDeck example: a 4x4 launchpad (16 buttons).
+#
+# A dense desktop control pad - app shortcuts, media transport, volume (hold to
+# ramp), and clipboard. Shows how a big grid packs many one-tap actions onto a
+# single page. The shell/keystroke actions are illustrative; edit them for your
+# OS and apps.
+#
+#   prestodeck-host --config examples/launchpad-4x4.yaml
+
+version: 1
+
+default_page: "pad"
+
+theme:
+  background: [12, 12, 16]
+  default_outline_color: [70, 80, 110]
+  corner_radius: 10
+
+pages:
+  - id: "pad"
+    grid: [4, 4]
+    buttons:
+      # Row 0 - launch apps
+      - {id: "term",    row: 0, col: 0, label: "Term", icon: "terminal.png", color: [90, 100, 130], action: {type: "keystroke", combo: "ctrl+alt+t"}}
+      - {id: "browser", row: 0, col: 1, label: "Web",  icon: "globe.png",    color: [0, 120, 215],  action: {type: "shell", cmd: "xdg-open https://example.com"}}
+      - {id: "files",   row: 0, col: 2, label: "Files",    icon: "monitor.png",  color: [90, 100, 130], action: {type: "shell", cmd: "xdg-open ~"}}
+      - {id: "notes",   row: 0, col: 3, label: "Notes",    icon: "bell.png",     color: [255, 185, 0],  action: {type: "notify", text: "Notes", duration_ms: 1200}}
+
+      # Row 1 - media transport
+      - {id: "prev", row: 1, col: 0, label: "Prev", icon: "previous.png",    color: [0, 120, 215],  action: {type: "media", key: "prev"}}
+      - {id: "play", row: 1, col: 1, label: "Play", icon: "play.png",        color: [22, 160, 72],  action: {type: "media", key: "play_pause"}}
+      - {id: "next", row: 1, col: 2, label: "Next", icon: "next.png",        color: [0, 120, 215],  action: {type: "media", key: "next"}}
+      - {id: "mute", row: 1, col: 3, label: "Mute", icon: "volume_mute.png", color: [200, 60, 60],  action: {type: "media", key: "mute"}}
+
+      # Row 2 - volume (hold to ramp) + utilities
+      - {id: "vol_down", row: 2, col: 0, label: "Vol -", icon: "volume_down.png", color: [255, 185, 0], repeat_ms: 120, action: {type: "media", key: "vol_down"}}
+      - {id: "vol_up",   row: 2, col: 1, label: "Vol +", icon: "volume_up.png",   color: [255, 185, 0], repeat_ms: 120, action: {type: "media", key: "vol_up"}}
+      - {id: "snip",     row: 2, col: 2, label: "Snip",  icon: "monitor.png",     color: [90, 100, 130], action: {type: "keystroke", combo: "shift+super+s"}}
+      - {id: "lock",     row: 2, col: 3, label: "Lock",  icon: "check.png",       color: [90, 100, 130], action: {type: "shell", cmd: "loginctl lock-session"}}
+
+      # Row 3 - clipboard + webhook
+      - {id: "copy",  row: 3, col: 0, label: "Copy",    icon: "swap.png",     color: [90, 100, 130], action: {type: "keystroke", combo: "ctrl+c"}}
+      - {id: "paste", row: 3, col: 1, label: "Paste",   icon: "swap.png",     color: [90, 100, 130], action: {type: "keystroke", combo: "ctrl+v"}}
+      - {id: "sig",   row: 3, col: 2, label: "Sig",     icon: "terminal.png", color: [90, 100, 130], action: {type: "text", text: "Thanks!"}}
+      - {id: "hook",  row: 3, col: 3, label: "Hook", icon: "globe.png",    color: [120, 80, 200], action: {type: "http", method: "POST", url: "http://127.0.0.1:8899/hook", json: {event: "pressed"}}}

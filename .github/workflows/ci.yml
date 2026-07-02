@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  host:
+    name: host lint, type, test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: host
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install host package with dev deps
+        run: pip install -e ".[dev]"
+
+      - name: Ruff
+        run: ruff check src
+
+      - name: Mypy (strict)
+        run: mypy src
+
+      - name: Pytest
+        run: pytest
+
+  device:
+    name: device compile + tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test deps
+        run: pip install pytest
+
+      - name: Byte-compile the firmware
+        run: python -m py_compile device/main.py device/boot.py device/lib/prestodeck/*.py
+
+      - name: Pytest (off-device pure logic)
+        run: pytest device/tests -q

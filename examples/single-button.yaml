@@ -1,0 +1,40 @@
+# PrestoDeck example: a single giant button (1x1 grid).
+#
+# The smallest possible deck - one page, one button filling the whole screen.
+# Here it is a push-to-mute for video calls: tap to send your call app's mute
+# hotkey; the button turns red and swaps to a struck-through mic while muted.
+#
+#   prestodeck-host --config examples/single-button.yaml
+
+version: 1
+
+default_page: "mic"
+
+theme:
+  background: [8, 10, 14]
+  default_outline_color: [0, 150, 0]
+  corner_radius: 20
+
+pages:
+  - id: "mic"
+    grid: [1, 1]
+    buttons:
+      - id: "mic"
+        row: 0
+        col: 0
+        label: "Mic Live"
+        icon: "mic.png"
+        color: [0, 150, 0]
+        action:
+          type: "toggle"
+          id: "call_mute"
+          # Both sides send the same shortcut - most call apps toggle mute with
+          # a single hotkey. Change the combo to match yours.
+          on: {type: "keystroke", combo: "ctrl+shift+m"}
+          off: {type: "keystroke", combo: "ctrl+shift+m"}
+          on_label: "Muted"
+          on_color: [200, 0, 0]
+          on_icon: "mic_muted.png"
+          off_label: "Mic Live"
+          off_color: [0, 150, 0]
+          off_icon: "mic.png"
